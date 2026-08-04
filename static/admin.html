@@ -26,6 +26,13 @@
         Customers
       </button>
     </div>
+    <div class="sidebar-group">
+      <div class="sidebar-label">Data</div>
+      <a class="nav-link" href="/api/backup" download>
+        <svg viewBox="0 0 16 16"><path d="M8 2v8m0 0 3-3m-3 3-3-3M2 12v1.5A1.5 1.5 0 0 0 3.5 15h9a1.5 1.5 0 0 0 1.5-1.5V12"/></svg>
+        Download Backup
+      </a>
+    </div>
   </div>
 
   <div class="main-col">
@@ -109,9 +116,9 @@
 <script>
 let allRequests = [];
 
-document.querySelectorAll(".nav-link").forEach((tab) => {
+document.querySelectorAll(".nav-link[data-tab]").forEach((tab) => {
   tab.addEventListener("click", () => {
-    document.querySelectorAll(".nav-link").forEach((t) => t.classList.remove("active"));
+    document.querySelectorAll(".nav-link[data-tab]").forEach((t) => t.classList.remove("active"));
     tab.classList.add("active");
     const target = tab.dataset.tab;
     document.getElementById("tab-requests").style.display = target === "requests" ? "block" : "none";

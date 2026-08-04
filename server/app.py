@@ -149,6 +149,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.handle_deactivate_customer(int(m.group(1)))
             if method == "GET" and path.startswith("/api/uploads/"):
                 return self.handle_serve_upload(path)
+            if method == "GET" and path == "/api/backup":
+                return self.handle_backup()
             return self._send_json(404, {"error": "Not found"})
         except Exception as e:
             self._send_json(500, {"error": f"Server error: {e}"})
@@ -442,6 +444,22 @@ class Handler(BaseHTTPRequestHandler):
         conn.commit()
         conn.close()
         self._send_json(200, {"ok": True})
+
+    def handle_backup(self):
+        user = self._require_user(role="admin")
+        if not user:
+            return
+        if not os.path.isfile(db.DB_PATH):
+            return self._send_json(404, {"error": "No data yet"})
+        with open(db.DB_PATH, "rb") as f:
+            data = f.read()
+        stamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/octet-stream")
+        self.send_header("Content-Disposition", f'attachment; filename="mehul_orders_backup_{stamp}.db"')
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
 
 
 def main():
