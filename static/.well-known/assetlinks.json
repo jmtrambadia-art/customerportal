@@ -3,6 +3,6 @@
       "target": {
         "namespace": "android_app",
         "package_name": "com.mehulelectro.orders",
-        "sha256_cert_fingerprints": ["57:41:DF:E3:4B:7C:41:5E:CB:F9:EC:F8:7E:70:F3:A1:6C:60:51:97:93:20:E3:14:0E:9F:58:64:DC:95:CA:4C"]
+        "sha256_cert_fingerprints": ["DF:76:35:45:A2:FD:39:52:7E:2B:B7:FE:D5:3A:8E:A3:E8:39:1C:83:EB:D1:9F:12:7C:46:4D:87:54:5B:2D:16"]
       }
     }]
