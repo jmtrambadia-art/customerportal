@@ -10,52 +10,77 @@
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<div class="main-col">
-  <div class="topbar">
-    <div class="breadcrumb">
-      <img src="/logo.png" alt="Mehul Electro Insulating Industries" class="topbar-logo">
-      <span class="sep">/</span>
-      <span class="current" id="companyName">Portal</span>
+<div class="shell">
+  <div class="sidebar">
+    <div class="sidebar-brand">
+      <img src="/logo.png" alt="Mehul Electro Insulating Industries">
     </div>
-    <div class="topbar-right">
-      <button class="btn btn-ghost" id="logoutBtn">Log out</button>
-      <div class="avatar" id="avatarInitial">C</div>
+    <div class="sidebar-nav">
+      <div class="sidebar-group">
+        <div class="sidebar-label">Portal</div>
+        <button class="nav-link active" data-tab="new">
+          <svg viewBox="0 0 16 16"><path d="M8 2v12M2 8h12"/></svg>
+          New Request
+        </button>
+        <button class="nav-link" data-tab="requests">
+          <svg viewBox="0 0 16 16"><path d="M2 3h12M2 8h12M2 13h12"/></svg>
+          My Requests
+        </button>
+      </div>
     </div>
   </div>
 
-  <div class="content wide">
-    <h2 class="page-title">Submit a Requirement</h2>
-    <div class="card">
-      <div id="formMsg"></div>
-      <form id="reqForm">
-        <div class="row2">
-          <div class="field">
-            <label>Product / Material *</label>
-            <input type="text" id="material" placeholder="e.g. Epoxy resin sheet, Mica tape" required>
-          </div>
-          <div class="field">
-            <label>Quantity</label>
-            <div class="hstack">
-              <input type="text" id="quantity" placeholder="e.g. 500" style="flex:1">
-              <input type="text" id="unit" placeholder="unit (kg/mtr/pcs)" style="flex:1">
-            </div>
-          </div>
-        </div>
-        <div class="field">
-          <label>Specifications</label>
-          <textarea id="specs" placeholder="Thickness, grade, dimensions, thermal class, etc."></textarea>
-        </div>
-        <div class="field">
-          <label>Additional Notes</label>
-          <textarea id="notes" placeholder="Delivery timeline, delivery location, or anything else we should know"></textarea>
-        </div>
-        <button type="submit" class="btn btn-primary">Send Requirement</button>
-      </form>
+  <div class="main-col">
+    <div class="topbar">
+      <div class="breadcrumb">
+        <span class="seg" id="companyName">Portal</span>
+        <span class="sep">/</span>
+        <span class="current" id="breadcrumbCurrent">New Request</span>
+      </div>
+      <div class="topbar-right">
+        <button class="btn btn-ghost" id="logoutBtn">Log out</button>
+        <div class="avatar" id="avatarInitial">C</div>
+      </div>
     </div>
 
-    <h2 class="page-title" style="margin-top:2rem">My Requests</h2>
-    <div class="card">
-      <div id="requestsList" class="empty-state">Loading...</div>
+    <div class="content">
+      <div id="tab-new">
+        <h2 class="page-title">New Request</h2>
+        <div class="card">
+          <div id="formMsg"></div>
+          <form id="reqForm">
+            <div class="row2">
+              <div class="field">
+                <label>Product / Material *</label>
+                <input type="text" id="material" placeholder="e.g. Epoxy resin sheet, Mica tape" required>
+              </div>
+              <div class="field">
+                <label>Quantity</label>
+                <div class="hstack">
+                  <input type="text" id="quantity" placeholder="e.g. 500" style="flex:1">
+                  <input type="text" id="unit" placeholder="unit (kg/mtr/pcs)" style="flex:1">
+                </div>
+              </div>
+            </div>
+            <div class="field">
+              <label>Specifications</label>
+              <textarea id="specs" placeholder="Thickness, grade, dimensions, thermal class, etc."></textarea>
+            </div>
+            <div class="field">
+              <label>Additional Notes</label>
+              <textarea id="notes" placeholder="Delivery timeline, delivery location, or anything else we should know"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Send Requirement</button>
+          </form>
+        </div>
+      </div>
+
+      <div id="tab-requests" style="display:none">
+        <h2 class="page-title">My Requests</h2>
+        <div class="card">
+          <div id="requestsList" class="empty-state">Loading...</div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -64,9 +89,17 @@
 <script>
 let me = null;
 
-function statusOptions() {
-  return ["received", "quoted", "in_progress", "dispatched", "completed", "cancelled"];
-}
+document.querySelectorAll(".nav-link[data-tab]").forEach((tab) => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".nav-link[data-tab]").forEach((t) => t.classList.remove("active"));
+    tab.classList.add("active");
+    const target = tab.dataset.tab;
+    document.getElementById("tab-new").style.display = target === "new" ? "block" : "none";
+    document.getElementById("tab-requests").style.display = target === "requests" ? "block" : "none";
+    document.getElementById("breadcrumbCurrent").textContent = target === "new" ? "New Request" : "My Requests";
+    if (target === "requests") loadRequests();
+  });
+});
 
 function renderRequests(requests) {
   const container = document.getElementById("requestsList");
@@ -118,7 +151,6 @@ document.getElementById("reqForm").addEventListener("submit", async (e) => {
     });
     msgBox.innerHTML = '<div class="success-msg">Requirement sent. We will get back to you shortly.</div>';
     document.getElementById("reqForm").reset();
-    loadRequests();
   } catch (err) {
     msgBox.innerHTML = `<div class="error-msg">${escapeHtml(err.message)}</div>`;
   }
@@ -135,7 +167,6 @@ document.getElementById("logoutBtn").addEventListener("click", async () => {
   const label = me.company_name || me.username;
   document.getElementById("companyName").textContent = label;
   document.getElementById("avatarInitial").textContent = label.charAt(0);
-  loadRequests();
 })();
 </script>
 </body>
