@@ -1,9 +1,7 @@
-import cgi
 import json
 import os
 import re
 import sys
-import uuid
 from datetime import datetime
 from http import cookies
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -288,37 +286,15 @@ class Handler(BaseHTTPRequestHandler):
         if not user:
             return
 
-        content_type = self.headers.get("Content-Type", "")
         file_path = None
         file_name = None
 
-        if content_type.startswith("multipart/form-data"):
-            form = cgi.FieldStorage(
-                fp=self.rfile,
-                headers=self.headers,
-                environ={"REQUEST_METHOD": "POST", "CONTENT_TYPE": content_type},
-            )
-            material = (form.getvalue("material") or "").strip()
-            specs = form.getvalue("specs") or ""
-            quantity = form.getvalue("quantity") or ""
-            unit = form.getvalue("unit") or ""
-            notes = form.getvalue("notes") or ""
-            file_field = form["file"] if "file" in form else None
-            if file_field is not None and getattr(file_field, "filename", None):
-                os.makedirs(UPLOADS_DIR, exist_ok=True)
-                fname = safe_filename(file_field.filename)
-                stored_name = f"{uuid.uuid4().hex}_{fname}"
-                with open(os.path.join(UPLOADS_DIR, stored_name), "wb") as out:
-                    out.write(file_field.file.read())
-                file_path = stored_name
-                file_name = fname
-        else:
-            body = self._read_json_body()
-            material = (body.get("material") or "").strip()
-            specs = body.get("specs") or ""
-            quantity = body.get("quantity") or ""
-            unit = body.get("unit") or ""
-            notes = body.get("notes") or ""
+        body = self._read_json_body()
+        material = (body.get("material") or "").strip()
+        specs = body.get("specs") or ""
+        quantity = body.get("quantity") or ""
+        unit = body.get("unit") or ""
+        notes = body.get("notes") or ""
 
         if not material:
             return self._send_json(400, {"error": "Material / product is required"})
