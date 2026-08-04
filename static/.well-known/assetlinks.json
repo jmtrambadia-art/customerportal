@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.mehulelectro.orders",
+        "sha256_cert_fingerprints": ["57:41:DF:E3:4B:7C:41:5E:CB:F9:EC:F8:7E:70:F3:A1:6C:60:51:97:93:20:E3:14:0E:9F:58:64:DC:95:CA:4C"]
+      }
+    }]
