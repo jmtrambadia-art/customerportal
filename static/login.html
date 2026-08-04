@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mehul Electro Insulating Industries — Sign In</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#18181b">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="login-wrap">
+  <div class="card login-card">
+    <img class="logo" src="/logo.png" alt="Mehul Electro Insulating Industries">
+    <p class="sub">Customer Order Portal</p>
+    <div id="error" style="display:none" class="error-msg"></div>
+    <form id="loginForm" class="stack">
+      <div class="field" style="text-align:left">
+        <label>Username</label>
+        <input type="text" id="username" autocomplete="username" required>
+      </div>
+      <div class="field" style="text-align:left">
+        <label>Password</label>
+        <input type="password" id="password" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%">Sign In</button>
+    </form>
+    <p class="muted" style="font-size:12px;margin-top:16px">
+      Don't have login details? Contact Mehul Electro Insulating Industries to get access.
+    </p>
+  </div>
+</div>
+<script src="/app.js"></script>
+<script>
+(async () => {
+  try {
+    const me = await api("/api/me");
+    window.location.href = me.role === "admin" ? "/admin.html" : "/customer.html";
+  } catch (e) { /* not logged in, stay here */ }
+})();
+
+document.getElementById("loginForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const errorBox = document.getElementById("error");
+  errorBox.style.display = "none";
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value;
+  try {
+    const me = await apiJson("/api/login", "POST", { username, password });
+    window.location.href = me.role === "admin" ? "/admin.html" : "/customer.html";
+  } catch (err) {
+    errorBox.textContent = err.message;
+    errorBox.style.display = "block";
+  }
+});
+</script>
+</body>
+</html>

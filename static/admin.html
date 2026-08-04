@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mehul Electro Insulating Industries — Admin</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#18181b">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="shell">
+  <div class="sidebar">
+    <div class="sidebar-brand">
+      <img src="/logo.png" alt="Mehul Electro Insulating Industries">
+    </div>
+    <div class="sidebar-group">
+      <div class="sidebar-label">Admin</div>
+      <button class="nav-link active" data-tab="requests">
+        <svg viewBox="0 0 16 16"><path d="M2 3h12M2 8h12M2 13h12"/></svg>
+        Requests
+      </button>
+      <button class="nav-link" data-tab="customers">
+        <svg viewBox="0 0 16 16"><path d="M5.5 7a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Zm6 0a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM1.5 14c0-2.5 1.8-4 4-4s4 1.5 4 4M9 10.3c1.9.2 3.3 1.6 3.3 3.7"/></svg>
+        Customers
+      </button>
+    </div>
+  </div>
+
+  <div class="main-col">
+    <div class="topbar">
+      <div class="breadcrumb">
+        <span class="seg">Admin</span>
+        <span class="sep">/</span>
+        <span class="current" id="breadcrumbCurrent">Requests</span>
+      </div>
+      <div class="topbar-right">
+        <button class="btn btn-ghost" id="logoutBtn">Log out</button>
+        <div class="avatar">A</div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div id="tab-requests">
+        <h2 class="page-title">Requests</h2>
+        <div class="hstack" style="justify-content:space-between;margin-bottom:1rem">
+          <span class="muted" style="font-size:0.85rem">All customer requirement submissions</span>
+          <select id="statusFilter" class="status-select" style="width:auto">
+            <option value="">All statuses</option>
+            <option value="received">Received</option>
+            <option value="quoted">Quoted</option>
+            <option value="in_progress">In Progress</option>
+            <option value="dispatched">Dispatched</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+        <div id="requestsList" class="empty-state">Loading...</div>
+      </div>
+
+      <div id="tab-customers" style="display:none">
+        <h2 class="page-title">Customers</h2>
+        <div class="card">
+          <h2>Add Customer</h2>
+          <div id="customerMsg"></div>
+          <form id="customerForm">
+            <div class="row2">
+              <div class="field">
+                <label>Company Name *</label>
+                <input type="text" id="c_company" required>
+              </div>
+              <div class="field">
+                <label>Contact Name</label>
+                <input type="text" id="c_contact">
+              </div>
+            </div>
+            <div class="row2">
+              <div class="field">
+                <label>Phone</label>
+                <input type="text" id="c_phone">
+              </div>
+              <div class="field"></div>
+            </div>
+            <div class="row2">
+              <div class="field">
+                <label>Username *</label>
+                <input type="text" id="c_username" required>
+              </div>
+              <div class="field">
+                <label>Password *</label>
+                <input type="text" id="c_password" placeholder="min 6 characters" required>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Create Customer Login</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>All Customers</h2>
+          <div id="customersList" class="empty-state">Loading...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/app.js"></script>
+<script>
+let allRequests = [];
+
+document.querySelectorAll(".nav-link").forEach((tab) => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".nav-link").forEach((t) => t.classList.remove("active"));
+    tab.classList.add("active");
+    const target = tab.dataset.tab;
+    document.getElementById("tab-requests").style.display = target === "requests" ? "block" : "none";
+    document.getElementById("tab-customers").style.display = target === "customers" ? "block" : "none";
+    document.getElementById("breadcrumbCurrent").textContent = target === "requests" ? "Requests" : "Customers";
+    if (target === "customers") loadCustomers();
+  });
+});
+
+function renderRequests() {
+  const filter = document.getElementById("statusFilter").value;
+  const requests = filter ? allRequests.filter((r) => r.status === filter) : allRequests;
+  const container = document.getElementById("requestsList");
+  if (!requests.length) {
+    container.innerHTML = '<div class="empty-state">No requests found.</div>';
+    return;
+  }
+  container.innerHTML = requests.map((r) => `
+    <div class="card">
+      <div class="hstack" style="justify-content:space-between">
+        <div>
+          <strong>${escapeHtml(r.material)}</strong>
+          <span class="muted"> — ${escapeHtml(r.company_name)}</span>
+        </div>
+        <span class="badge badge-${r.status}">${statusLabel(r.status)}</span>
+      </div>
+      <div class="muted" style="font-size:12px;margin:4px 0">${formatDate(r.created_at)} · Qty: ${escapeHtml(r.quantity)} ${escapeHtml(r.unit)}</div>
+      ${r.specs ? `<div style="font-size:13px;margin-top:6px"><strong>Specs:</strong> ${escapeHtml(r.specs)}</div>` : ""}
+      ${r.notes ? `<div style="font-size:13px;margin-top:4px"><strong>Notes:</strong> ${escapeHtml(r.notes)}</div>` : ""}
+      ${r.file_path ? `<div style="font-size:13px;margin-top:4px"><a href="/api/uploads/${encodeURIComponent(r.file_path)}" target="_blank">Download attached file (${escapeHtml(r.file_name || "file")})</a></div>` : ""}
+      <div class="request-detail">
+        <div class="hstack">
+          <label class="muted" style="font-size:12px">Status:</label>
+          <select class="status-select inline-input" data-id="${r.id}" data-role="status">
+            ${["received","quoted","in_progress","dispatched","completed","cancelled"].map((s) => `<option value="${s}" ${s === r.status ? "selected" : ""}>${statusLabel(s)}</option>`).join("")}
+          </select>
+          <input type="text" data-id="${r.id}" data-role="notes" placeholder="Add a note for the customer" value="${escapeHtml(r.admin_notes || "")}" class="inline-input" style="flex:1;min-width:180px">
+        </div>
+        <div class="hstack" style="margin-top:8px">
+          <label class="muted" style="font-size:12px">Transport:</label>
+          <input type="text" data-id="${r.id}" data-role="transport" placeholder="Transport / courier name" value="${escapeHtml(r.transport_name || "")}" class="inline-input" style="flex:1;min-width:140px">
+          <label class="muted" style="font-size:12px">LR No.:</label>
+          <input type="text" data-id="${r.id}" data-role="lr" placeholder="LR / tracking number" value="${escapeHtml(r.lr_number || "")}" class="inline-input" style="flex:1;min-width:140px">
+        </div>
+        <div class="hstack" style="margin-top:8px">
+          <label class="muted" style="font-size:12px">Expected Dispatch:</label>
+          <input type="date" data-id="${r.id}" data-role="delivery" value="${escapeHtml(r.expected_dispatch_date || "")}" class="inline-input">
+          <button class="btn btn-outline" data-id="${r.id}" data-role="save">Save</button>
+        </div>
+      </div>
+    </div>
+  `).join("");
+
+  container.querySelectorAll('[data-role="save"]').forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.id;
+      const status = container.querySelector(`[data-role="status"][data-id="${id}"]`).value;
+      const notes = container.querySelector(`[data-role="notes"][data-id="${id}"]`).value;
+      const transport = container.querySelector(`[data-role="transport"][data-id="${id}"]`).value;
+      const lr = container.querySelector(`[data-role="lr"][data-id="${id}"]`).value;
+      const delivery = container.querySelector(`[data-role="delivery"][data-id="${id}"]`).value;
+      btn.disabled = true;
+      btn.textContent = "Saving...";
+      try {
+        await apiJson(`/api/requests/${id}`, "PATCH", { status, admin_notes: notes, transport_name: transport, lr_number: lr, expected_dispatch_date: delivery });
+        await loadRequests();
+      } catch (e) {
+        alert(e.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Save";
+      }
+    });
+  });
+}
+
+async function loadRequests() {
+  try {
+    allRequests = await api("/api/requests");
+    renderRequests();
+  } catch (e) {
+    document.getElementById("requestsList").innerHTML = `<div class="error-msg">${escapeHtml(e.message)}</div>`;
+  }
+}
+
+document.getElementById("statusFilter").addEventListener("change", renderRequests);
+
+async function loadCustomers() {
+  const container = document.getElementById("customersList");
+  try {
+    const customers = await api("/api/customers");
+    const rows = customers.length
+      ? customers.map((c) => `
+        <tr>
+          <td data-label="Company">${escapeHtml(c.company_name)}</td>
+          <td data-label="Contact">${escapeHtml(c.contact_name || "—")}</td>
+          <td data-label="Username">${escapeHtml(c.username)}</td>
+          <td data-label="Phone">${escapeHtml(c.phone || "—")}</td>
+          <td data-label="Status">${c.active ? '<span class="badge badge-completed">Active</span>' : '<span class="badge badge-cancelled">Disabled</span>'}</td>
+          <td data-label="Since">${formatDate(c.created_at)}</td>
+        </tr>
+      `).join("")
+      : `<tr class="table-empty-row"><td colspan="6">No customers yet. Add one above.</td></tr>`;
+    container.innerHTML = `
+      <table>
+        <thead><tr><th>Company</th><th>Contact</th><th>Username</th><th>Phone</th><th>Status</th><th>Since</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  } catch (e) {
+    container.innerHTML = `<div class="error-msg">${escapeHtml(e.message)}</div>`;
+  }
+}
+
+document.getElementById("customerForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msgBox = document.getElementById("customerMsg");
+  msgBox.innerHTML = "";
+  const payload = {
+    company_name: document.getElementById("c_company").value.trim(),
+    contact_name: document.getElementById("c_contact").value.trim(),
+    phone: document.getElementById("c_phone").value.trim(),
+    username: document.getElementById("c_username").value.trim(),
+    password: document.getElementById("c_password").value,
+  };
+  try {
+    await apiJson("/api/customers", "POST", payload);
+    msgBox.innerHTML = '<div class="success-msg">Customer account created. Share the username/password with them.</div>';
+    document.getElementById("customerForm").reset();
+    loadCustomers();
+  } catch (err) {
+    msgBox.innerHTML = `<div class="error-msg">${escapeHtml(err.message)}</div>`;
+  }
+});
+
+document.getElementById("logoutBtn").addEventListener("click", async () => {
+  await apiJson("/api/logout", "POST", {});
+  window.location.href = "/login.html";
+});
+
+(async () => {
+  const me = await requireAuth("admin");
+  if (!me) return;
+  document.querySelector(".avatar").textContent = (me.username || "A").charAt(0);
+  loadRequests();
+})();
+</script>
+</body>
+</html>

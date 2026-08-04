@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: mehul-orders
+    runtime: python
+    plan: starter
+    buildCommand: ""
+    startCommand: "python3 server/app.py"
+    disk:
+      name: mehul-orders-data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1
