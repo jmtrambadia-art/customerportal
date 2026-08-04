@@ -145,8 +145,12 @@ class Handler(BaseHTTPRequestHandler):
             if method == "POST" and path == "/api/customers":
                 return self.handle_create_customer()
             m = re.match(r"^/api/customers/(\d+)$", path)
+            if method == "GET" and m:
+                return self.handle_get_customer(int(m.group(1)))
+            if method == "PATCH" and m:
+                return self.handle_update_customer(int(m.group(1)))
             if method == "DELETE" and m:
-                return self.handle_deactivate_customer(int(m.group(1)))
+                return self.handle_delete_customer(int(m.group(1)))
             if method == "GET" and path.startswith("/api/uploads/"):
                 return self.handle_serve_upload(path)
             if method == "GET" and path == "/api/backup":
@@ -435,12 +439,98 @@ class Handler(BaseHTTPRequestHandler):
         conn.close()
         self._send_json(201, {"id": new_id, "username": username})
 
-    def handle_deactivate_customer(self, customer_id):
+    def handle_get_customer(self, customer_id):
         user = self._require_user(role="admin")
         if not user:
             return
         conn = db.get_conn()
-        conn.execute("UPDATE users SET active = 0 WHERE id = ? AND role = 'customer'", (customer_id,))
+        row = conn.execute(
+            "SELECT id, username, company_name, contact_name, phone, active, created_at "
+            "FROM users WHERE id = ? AND role = 'customer'",
+            (customer_id,),
+        ).fetchone()
+        conn.close()
+        if not row:
+            return self._send_json(404, {"error": "Customer not found"})
+        self._send_json(200, dict(row))
+
+    def handle_update_customer(self, customer_id):
+        user = self._require_user(role="admin")
+        if not user:
+            return
+        body = self._read_json_body()
+        conn = db.get_conn()
+        existing = conn.execute(
+            "SELECT id FROM users WHERE id = ? AND role = 'customer'", (customer_id,)
+        ).fetchone()
+        if not existing:
+            conn.close()
+            return self._send_json(404, {"error": "Customer not found"})
+
+        fields = []
+        values = []
+
+        if "company_name" in body:
+            company_name = (body.get("company_name") or "").strip()
+            if not company_name:
+                conn.close()
+                return self._send_json(400, {"error": "Company name is required"})
+            fields.append("company_name = ?")
+            values.append(company_name)
+        if "contact_name" in body:
+            fields.append("contact_name = ?")
+            values.append((body.get("contact_name") or "").strip())
+        if "phone" in body:
+            fields.append("phone = ?")
+            values.append((body.get("phone") or "").strip())
+        if "username" in body:
+            username = (body.get("username") or "").strip()
+            if not username:
+                conn.close()
+                return self._send_json(400, {"error": "Username is required"})
+            dup = conn.execute(
+                "SELECT id FROM users WHERE username = ? AND id != ?", (username, customer_id)
+            ).fetchone()
+            if dup:
+                conn.close()
+                return self._send_json(409, {"error": "Username already exists"})
+            fields.append("username = ?")
+            values.append(username)
+        if body.get("password"):
+            password = body["password"]
+            if len(password) < 6:
+                conn.close()
+                return self._send_json(400, {"error": "Password must be at least 6 characters"})
+            pw_hash, salt = db.hash_password(password)
+            fields.append("password_hash = ?")
+            values.append(pw_hash)
+            fields.append("salt = ?")
+            values.append(salt)
+
+        if not fields:
+            conn.close()
+            return self._send_json(400, {"error": "Nothing to update"})
+
+        values.append(customer_id)
+        conn.execute(f"UPDATE users SET {', '.join(fields)} WHERE id = ?", values)
+        conn.commit()
+        conn.close()
+        self._send_json(200, {"ok": True})
+
+    def handle_delete_customer(self, customer_id):
+        user = self._require_user(role="admin")
+        if not user:
+            return
+        conn = db.get_conn()
+        existing = conn.execute(
+            "SELECT id FROM users WHERE id = ? AND role = 'customer'", (customer_id,)
+        ).fetchone()
+        if not existing:
+            conn.close()
+            return self._send_json(404, {"error": "Customer not found"})
+        conn.execute("DELETE FROM requests WHERE customer_id = ?", (customer_id,))
+        conn.execute("DELETE FROM sessions WHERE user_id = ?", (customer_id,))
+        conn.execute("DELETE FROM users WHERE id = ? AND role = 'customer'", (customer_id,))
         conn.commit()
         conn.close()
         self._send_json(200, {"ok": True})

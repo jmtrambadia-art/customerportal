@@ -11,18 +11,18 @@
 </head>
 <body>
 <div class="shell">
-  <div class="sidebar">
+  <div class="sidebar" id="sidebar">
     <div class="sidebar-brand">
       <img src="/logo.png" alt="Mehul Electro Insulating Industries">
     </div>
     <div class="sidebar-nav">
       <div class="sidebar-group">
         <div class="sidebar-label">Admin</div>
-        <button class="nav-link active" data-tab="requests">
+        <button class="nav-link active" data-view="requests">
           <svg viewBox="0 0 16 16"><path d="M2 3h12M2 8h12M2 13h12"/></svg>
           Requests
         </button>
-        <button class="nav-link" data-tab="customers">
+        <button class="nav-link" data-view="customers">
           <svg viewBox="0 0 16 16"><path d="M5.5 7a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Zm6 0a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM1.5 14c0-2.5 1.8-4 4-4s4 1.5 4 4M9 10.3c1.9.2 3.3 1.6 3.3 3.7"/></svg>
           Customers
         </button>
@@ -50,8 +50,8 @@
       </div>
     </div>
 
-    <div class="content">
-      <div id="tab-requests">
+    <div class="content" id="content">
+      <div id="view-requests">
         <h2 class="page-title">Requests</h2>
         <div class="hstack" style="justify-content:space-between;margin-bottom:1rem">
           <span class="muted" style="font-size:0.85rem">All customer requirement submissions</span>
@@ -68,10 +68,20 @@
         <div id="requestsList" class="empty-state">Loading...</div>
       </div>
 
-      <div id="tab-customers" style="display:none">
-        <h2 class="page-title">Customers</h2>
+      <div id="view-customers" style="display:none">
+        <div class="hstack" style="justify-content:space-between">
+          <h2 class="page-title">Customers</h2>
+          <button class="btn btn-primary" id="addCustomerBtn" style="height:fit-content">+ Add Customer</button>
+        </div>
         <div class="card">
-          <h2>Add Customer</h2>
+          <div id="customersList" class="empty-state">Loading...</div>
+        </div>
+      </div>
+
+      <div id="view-customer-form" style="display:none">
+        <a href="#" class="btn btn-ghost" id="backFromForm" style="padding-left:0">&larr; Back to Customers</a>
+        <h2 class="page-title">Add Customer</h2>
+        <div class="card">
           <div id="customerMsg"></div>
           <form id="customerForm">
             <div class="row2">
@@ -104,30 +114,117 @@
             <button type="submit" class="btn btn-primary">Create Customer Login</button>
           </form>
         </div>
+      </div>
+
+      <div id="view-customer-detail" style="display:none">
+        <a href="#" class="btn btn-ghost" id="backFromDetail" style="padding-left:0">&larr; Back to Customers</a>
+        <h2 class="page-title" id="detailCompanyName">Customer</h2>
 
         <div class="card">
-          <h2>All Customers</h2>
-          <div id="customersList" class="empty-state">Loading...</div>
+          <h2>Company &amp; Login Details</h2>
+          <div id="detailMsg"></div>
+          <form id="detailForm">
+            <div class="row2">
+              <div class="field">
+                <label>Company Name *</label>
+                <input type="text" id="d_company" required>
+              </div>
+              <div class="field">
+                <label>Contact Name</label>
+                <input type="text" id="d_contact">
+              </div>
+            </div>
+            <div class="row2">
+              <div class="field">
+                <label>Phone</label>
+                <input type="text" id="d_phone">
+              </div>
+              <div class="field"></div>
+            </div>
+            <div class="row2">
+              <div class="field">
+                <label>Username *</label>
+                <input type="text" id="d_username" required>
+              </div>
+              <div class="field">
+                <label>Reset Password</label>
+                <input type="text" id="d_password" placeholder="Leave blank to keep current password">
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>Requests from this Customer</h2>
+          <div id="detailRequests" class="empty-state">Loading...</div>
+        </div>
+
+        <div class="card" style="border-color:color-mix(in srgb, var(--danger) 35%, var(--card))">
+          <h2 style="color:var(--danger)">Danger Zone</h2>
+          <p class="muted" style="font-size:0.85rem">Permanently delete this customer's login and all of their submitted requests. This cannot be undone.</p>
+          <button class="btn btn-danger" id="deleteCustomerBtn">Delete Customer</button>
         </div>
       </div>
     </div>
   </div>
 </div>
 
+<dialog id="deleteDialog">
+  <p id="deleteDialogMsg" style="margin-top:0"></p>
+  <div class="hstack" style="justify-content:flex-end;margin-top:1.2rem">
+    <button class="btn" id="deleteCancelBtn">Cancel</button>
+    <button class="btn btn-danger" id="deleteConfirmBtn">Delete Customer</button>
+  </div>
+</dialog>
+
 <script src="/app.js"></script>
 <script>
 let allRequests = [];
+let allCustomers = [];
+let currentCustomerId = null;
 
-document.querySelectorAll(".nav-link[data-tab]").forEach((tab) => {
+function showView(name) {
+  const views = ["requests", "customers", "customer-form", "customer-detail"];
+  views.forEach((v) => {
+    document.getElementById(`view-${v}`).style.display = v === name ? "block" : "none";
+  });
+  const fullPage = name === "customer-form" || name === "customer-detail";
+  document.getElementById("sidebar").style.display = fullPage ? "none" : "flex";
+
+  document.querySelectorAll(".nav-link[data-view]").forEach((t) => t.classList.remove("active"));
+  const labels = { requests: "Requests", customers: "Customers", "customer-form": "Add Customer", "customer-detail": "Customer" };
+  if (name === "requests" || name === "customers") {
+    document.querySelector(`.nav-link[data-view="${name}"]`).classList.add("active");
+  }
+  document.getElementById("breadcrumbCurrent").textContent = labels[name];
+}
+
+document.querySelectorAll(".nav-link[data-view]").forEach((tab) => {
   tab.addEventListener("click", () => {
-    document.querySelectorAll(".nav-link[data-tab]").forEach((t) => t.classList.remove("active"));
-    tab.classList.add("active");
-    const target = tab.dataset.tab;
-    document.getElementById("tab-requests").style.display = target === "requests" ? "block" : "none";
-    document.getElementById("tab-customers").style.display = target === "customers" ? "block" : "none";
-    document.getElementById("breadcrumbCurrent").textContent = target === "requests" ? "Requests" : "Customers";
+    const target = tab.dataset.view;
+    showView(target);
+    if (target === "requests") loadRequests();
     if (target === "customers") loadCustomers();
   });
+});
+
+document.getElementById("addCustomerBtn").addEventListener("click", () => {
+  document.getElementById("customerForm").reset();
+  document.getElementById("customerMsg").innerHTML = "";
+  showView("customer-form");
+});
+
+document.getElementById("backFromForm").addEventListener("click", (e) => {
+  e.preventDefault();
+  showView("customers");
+  loadCustomers();
+});
+
+document.getElementById("backFromDetail").addEventListener("click", (e) => {
+  e.preventDefault();
+  showView("customers");
+  loadCustomers();
 });
 
 function renderRequests() {
@@ -211,25 +308,33 @@ document.getElementById("statusFilter").addEventListener("change", renderRequest
 async function loadCustomers() {
   const container = document.getElementById("customersList");
   try {
-    const customers = await api("/api/customers");
-    const rows = customers.length
-      ? customers.map((c) => `
-        <tr>
-          <td data-label="Company">${escapeHtml(c.company_name)}</td>
+    allCustomers = await api("/api/customers");
+    const rows = allCustomers.length
+      ? allCustomers.map((c) => `
+        <tr class="customer-row" data-id="${c.id}" style="cursor:pointer">
+          <td data-label="Company"><a href="#" class="customer-link" data-id="${c.id}">${escapeHtml(c.company_name)}</a></td>
           <td data-label="Contact">${escapeHtml(c.contact_name || "—")}</td>
           <td data-label="Username">${escapeHtml(c.username)}</td>
           <td data-label="Phone">${escapeHtml(c.phone || "—")}</td>
-          <td data-label="Status">${c.active ? '<span class="badge badge-completed">Active</span>' : '<span class="badge badge-cancelled">Disabled</span>'}</td>
           <td data-label="Since">${formatDate(c.created_at)}</td>
         </tr>
       `).join("")
-      : `<tr class="table-empty-row"><td colspan="6">No customers yet. Add one above.</td></tr>`;
+      : `<tr class="table-empty-row"><td colspan="5">No customers yet. Click "+ Add Customer" above.</td></tr>`;
     container.innerHTML = `
       <table>
-        <thead><tr><th>Company</th><th>Contact</th><th>Username</th><th>Phone</th><th>Status</th><th>Since</th></tr></thead>
+        <thead><tr><th>Company</th><th>Contact</th><th>Username</th><th>Phone</th><th>Since</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     `;
+    container.querySelectorAll(".customer-link").forEach((link) => {
+      link.addEventListener("click", (e) => {
+        e.preventDefault();
+        openCustomerDetail(parseInt(link.dataset.id, 10));
+      });
+    });
+    container.querySelectorAll(".customer-row").forEach((row) => {
+      row.addEventListener("click", () => openCustomerDetail(parseInt(row.dataset.id, 10)));
+    });
   } catch (e) {
     container.innerHTML = `<div class="error-msg">${escapeHtml(e.message)}</div>`;
   }
@@ -248,11 +353,100 @@ document.getElementById("customerForm").addEventListener("submit", async (e) => 
   };
   try {
     await apiJson("/api/customers", "POST", payload);
-    msgBox.innerHTML = '<div class="success-msg">Customer account created. Share the username/password with them.</div>';
-    document.getElementById("customerForm").reset();
+    showView("customers");
     loadCustomers();
   } catch (err) {
     msgBox.innerHTML = `<div class="error-msg">${escapeHtml(err.message)}</div>`;
+  }
+});
+
+async function openCustomerDetail(id) {
+  currentCustomerId = id;
+  showView("customer-detail");
+  document.getElementById("detailMsg").innerHTML = "";
+  document.getElementById("detailCompanyName").textContent = "Loading...";
+  document.getElementById("detailRequests").innerHTML = "Loading...";
+  try {
+    const c = await api(`/api/customers/${id}`);
+    document.getElementById("detailCompanyName").textContent = c.company_name;
+    document.getElementById("d_company").value = c.company_name || "";
+    document.getElementById("d_contact").value = c.contact_name || "";
+    document.getElementById("d_phone").value = c.phone || "";
+    document.getElementById("d_username").value = c.username || "";
+    document.getElementById("d_password").value = "";
+  } catch (e) {
+    document.getElementById("detailCompanyName").textContent = "Error";
+    document.getElementById("detailMsg").innerHTML = `<div class="error-msg">${escapeHtml(e.message)}</div>`;
+    return;
+  }
+
+  try {
+    const requests = (await api("/api/requests")).filter((r) => r.customer_id === id);
+    const container = document.getElementById("detailRequests");
+    if (!requests.length) {
+      container.innerHTML = '<div class="empty-state">No requests from this customer yet.</div>';
+    } else {
+      const rows = requests.map((r) => `
+        <tr>
+          <td data-label="Material"><strong>${escapeHtml(r.material)}</strong></td>
+          <td data-label="Quantity">${escapeHtml(r.quantity)} ${escapeHtml(r.unit)}</td>
+          <td data-label="Submitted">${formatDate(r.created_at)}</td>
+          <td data-label="Status"><span class="badge badge-${r.status}">${statusLabel(r.status)}</span></td>
+        </tr>
+      `).join("");
+      container.innerHTML = `
+        <table>
+          <thead><tr><th>Material</th><th>Quantity</th><th>Submitted</th><th>Status</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    }
+  } catch (e) {
+    document.getElementById("detailRequests").innerHTML = `<div class="error-msg">${escapeHtml(e.message)}</div>`;
+  }
+}
+
+document.getElementById("detailForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msgBox = document.getElementById("detailMsg");
+  msgBox.innerHTML = "";
+  const payload = {
+    company_name: document.getElementById("d_company").value.trim(),
+    contact_name: document.getElementById("d_contact").value.trim(),
+    phone: document.getElementById("d_phone").value.trim(),
+    username: document.getElementById("d_username").value.trim(),
+  };
+  const newPassword = document.getElementById("d_password").value;
+  if (newPassword) payload.password = newPassword;
+  try {
+    await apiJson(`/api/customers/${currentCustomerId}`, "PATCH", payload);
+    msgBox.innerHTML = '<div class="success-msg">Changes saved.</div>';
+    document.getElementById("d_password").value = "";
+    document.getElementById("detailCompanyName").textContent = payload.company_name;
+  } catch (err) {
+    msgBox.innerHTML = `<div class="error-msg">${escapeHtml(err.message)}</div>`;
+  }
+});
+
+const deleteDialog = document.getElementById("deleteDialog");
+
+document.getElementById("deleteCustomerBtn").addEventListener("click", () => {
+  const company = document.getElementById("detailCompanyName").textContent;
+  document.getElementById("deleteDialogMsg").textContent =
+    `Permanently delete "${company}"? This will remove their login and every request they've submitted. This cannot be undone.`;
+  deleteDialog.showModal();
+});
+
+document.getElementById("deleteCancelBtn").addEventListener("click", () => deleteDialog.close());
+
+document.getElementById("deleteConfirmBtn").addEventListener("click", async () => {
+  try {
+    await api(`/api/customers/${currentCustomerId}`, { method: "DELETE" });
+    deleteDialog.close();
+    showView("customers");
+    loadCustomers();
+  } catch (e) {
+    alert(e.message);
   }
 });
 
