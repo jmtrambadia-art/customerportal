@@ -532,7 +532,7 @@ def main():
     db.init_db()
     os.makedirs(UPLOADS_DIR, exist_ok=True)
     server = ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
-    print(f"Mehul Orders server running at http://localhost:{PORT}")
+    print(f"MEII Customer Portal server running at http://localhost:{PORT}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

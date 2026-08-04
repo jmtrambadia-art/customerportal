@@ -1,6 +1,6 @@
 {
-  "name": "Mehul Electro Insulating Industries - Order Portal",
-  "short_name": "MEI Orders",
+  "name": "MEII Customer Portal",
+  "short_name": "MEII Customer Portal",
   "start_url": "/login.html",
   "display": "standalone",
   "background_color": "#ffffff",
