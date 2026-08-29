@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MEII Customer Portal</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<div id="loginView" class="login-wrap">
+  <div class="card login-card">
+    <img class="logo" src="/logo.png" alt="Mehul Electro Insulating Industries">
+    <p class="sub">MEII Customer Portal</p>
+    <div id="loginError" style="display:none" class="error-msg"></div>
+    <form id="loginForm" class="stack">
+      <div class="field" style="text-align:left">
+        <label>Username</label>
+        <input type="text" id="username" autocomplete="username" required>
+      </div>
+      <div class="field" style="text-align:left">
+        <label>Password</label>
+        <input type="password" id="password" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%">Sign In</button>
+    </form>
+    <p class="muted" style="font-size:12px;margin-top:16px">
+      Don't have login details? Contact Mehul Electro Insulating Industries to get access.
+    </p>
+  </div>
+</div>
+
+<div id="appView" class="shell" style="display:none">
+  <div class="sidebar">
+    <div class="sidebar-brand"><img src="/logo.png" alt=""></div>
+    <nav id="navLinks" class="sidebar-nav"></nav>
+    <div class="sidebar-footer">
+      <button id="logoutBtn" class="nav-link">Log out</button>
+    </div>
+  </div>
+  <div class="main-col">
+    <div id="page" style="padding:1.5rem"></div>
+  </div>
+</div>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>

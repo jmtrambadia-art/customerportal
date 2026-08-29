@@ -1,0 +1,38 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.role == 'admin';
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // customers/{uid} - one profile doc per customer, keyed by their Auth uid
+    match /customers/{uid} {
+      allow read: if isAdmin() || isOwner(uid);
+      allow create: if isAdmin();
+      allow update: if isAdmin() || (isOwner(uid) &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['companyName', 'contactName', 'phone']));
+      allow delete: if isAdmin();
+    }
+
+    // requests/{requestId} - order requests, each owned by a customer uid
+    match /requests/{requestId} {
+      allow read: if isAdmin() || isOwner(resource.data.customerId);
+      allow create: if isAdmin() || (isSignedIn() &&
+        request.resource.data.customerId == request.auth.uid &&
+        request.resource.data.status == 'received');
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+  }
+}

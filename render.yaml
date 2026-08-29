@@ -3,5 +3,8 @@ services:
     name: mehul-orders
     runtime: python
     plan: free
-    buildCommand: ""
+    buildCommand: "pip install -r server/requirements.txt"
     startCommand: "python3 server/app.py"
+    envVars:
+      - key: FIREBASE_ADMINSDK_JSON
+        sync: false
